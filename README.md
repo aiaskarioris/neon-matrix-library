@@ -1,6 +1,5 @@
 # Neon Matrix Library
 A C library for vector/matrix operations, accelerated using Neon intrinsics (SIMD) for Arm64 processors.
----
 
 ## Introduction
 This is a C library developed for ARM64 processors with Neon SIMD instructions available. The library mainly implements linear algebra operations for vectors/matrices, with some functionality for complex numbers as well.
@@ -9,7 +8,7 @@ Finally, functionality for implementing LSTM networks is also implemented. Train
 
 ## Motivation
 This code base was developed for my thesis in the Department of Informatics and Computer Engineering, University of West Attica, titled [Study and Customization of Artificial Intelligence on SoC-FPGA for
-Audio Signal Processing|] (while the first few pages are not written in english, the thesis itself is). The goal of this work was to accelerate a Neural Network DSP algorithm for audio utilizing an SoC+FPGA system. While both the software and FPGA hardware designs were implemented, due to time limitations they were not integrated. Estimates of execution time showed that the most efficient partition scheme would be to execute vector-by-matrix multiplications and most of the LSTM operation on the FPGA. However, the C code itself would theoretically achieve a speed-up of nearly x6.
+Audio Signal Processing | https://polynoe.lib.uniwa.gr/xmlui/bitstream/handle/11400/9983/Karioris_19390079.pdf?sequence=1&isAllowed=y] (while the first few pages are not written in english, the thesis itself is). The goal of this work was to accelerate a Neural Network DSP algorithm for audio utilizing an SoC+FPGA system. While both the software and FPGA hardware designs were implemented, due to time limitations they were not integrated. Estimates of execution time showed that the most efficient partition scheme would be to execute vector-by-matrix multiplications and most of the LSTM operation on the FPGA. However, the C code itself would theoretically achieve a speed-up of nearly x6. Details about the code's inner-workings can be found in [Chapter 5.1 | https://polynoe.lib.uniwa.gr/xmlui/bitstream/handle/11400/9983/Karioris_19390079.pdf?sequence=1&isAllowed=y#section.5.1] while an evaluation of performance is shown in [Chapter 6.3 | https://polynoe.lib.uniwa.gr/xmlui/bitstream/handle/11400/9983/Karioris_19390079.pdf?sequence=1&isAllowed=y#section.6.3].
 
 ## Repository Structure
 This repository is split into three directories: `include`, `src` and `tests`. `include` contains all the header files of the library while `src` contains the functions' definitions. Most functions in `src` use pre-compiler directives to enable/disable the use of SIMD instructions, based on the `SERIAL` flag used during compilation. `tests` includes the source file for a number of programs used to validate the functionality of the functions in `src` as well as measure their execution times. Tests use as input data csv files located in a `csv` directory.
