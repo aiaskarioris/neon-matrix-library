@@ -38,10 +38,6 @@ void deleteMatrix(matrix32f_t *mat) {
 
 void clearMatrix(matrix32f_t *mat) {
     size_t len = mat->w * mat->h;
-    /* Both methods take the same time
-    memset(mat->d, 0, len * sizeof(float));
-    return;
-    */
 
     // Load a vector register with 0s
     float32x4_t vreg = vld1q_dup_f32(&fzero);
@@ -55,6 +51,8 @@ void clearMatrix(matrix32f_t *mat) {
 
     // Zero-out leftover area (if w*h%4!=0)
     for(i; i < len; i++) { mat->d[i] = 0.00; }
+
+    // This method takes the same time as `memset`
 }
 
 void matrixConcat(matrix32f_t *in0, matrix32f_t *in1, matrix32f_t *out0) {
@@ -100,8 +98,11 @@ void flipVector(matrix32f_t *in0, matrix32f_t *out0) {
         r -= 4;
     }
 }
+
 #else
+
 // Serial Code * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+
 #ifdef DEBUG
     if(in0->w != out0->w || in0->h != out0->h) { printf("Error in flipVector: (in0->w != out0->w || in0->h != out0->h)\n"); return; }
     if(in0 == out0 || in0->d == out0->d || out0 == NULL) { printf("Error in flipVector: This operation is not done in-place.\n"); return; }
@@ -129,7 +130,7 @@ void dumpFloat32to8bit(matrix32f_t *mat, uint8_t int_bits, int8_t *dest) {
     size_t len = mat->w * mat->h;
     size_t i = 0;
 
-#ifndef SERIAL // The following code should be skipped if NEON isn't used
+#ifndef SERIAL // The following code should be skipped if Neon isn't used
 
     // Used to index output vectors for narrowing.
     // Every 4 increments a write to memory is performed
@@ -137,8 +138,8 @@ void dumpFloat32to8bit(matrix32f_t *mat, uint8_t int_bits, int8_t *dest) {
     uint8_t step = 0;
     // Guard value that moves through 16, 12, 8 and 4 as `step` moves through
     // its values. Used to make sure that when a step cycle begins, there
-    // are indeeded at least 16 numbers to be read, so that the for-loop won't
-    // finish with step!=0
+    // are indeeded at least 16 numbers left to be read, so that the
+    // for-loop won't finish with step!=0
     size_t guard = 16;
 
     // Writes to `dest` happen with 16 numbers at a time; A different index is used
@@ -148,10 +149,10 @@ void dumpFloat32to8bit(matrix32f_t *mat, uint8_t int_bits, int8_t *dest) {
     float32x4_t vfreg, vfactor;
 
     // Registers for tree loading
-    int16x4_t vint16x4[2]; // Once both are full, vint16x8 can be made
-    int16x8_t vint16x8; // Once vint16x8 is ready, a vint8x8 can be made
-    int8x8_t vint8x8[2]; // Once both are full, vint8x16 can be made
-    int8x16_t vint8x16; // Once ready, a write occurs
+    int16x4_t vint16x4[2];  // Once both are full, vint16x8 can be made
+    int16x8_t vint16x8;     // Once vint16x8 is ready, a vint8x8 can be made
+    int8x8_t vint8x8[2];    // Once both are full, vint8x16 can be made
+    int8x16_t vint8x16;     // Once ready, a write occurs
 
     // Load quantization factor into vfactor
 #ifdef QUANTIZE_BY_DIVISION

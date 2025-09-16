@@ -6,14 +6,16 @@
 
 static const float fzero = 0.00;
 
-// Quantization by multiplication is faster,
+// Define/Undefine a constant to select between quantization
+// with Multiplication or division.
+// Quantization with multiplication is faster,
 // more than 20% in certain cases.
 #define QUANTIZE_BY_MULTIPLICATION
 //#define QUANTIZE_BY_DIVISION
 
-// Division factors used for reversion to float32_t.
+// Division factors used for conversion back to float32_t.
 // Essentially a LUT for 2^-(15-i)
-// (7 and not 8 because one bit is used for the sign)
+// (15 and not 16 because one bit is used for the sign)
 static const float quant_div_factor[] = {
     //Int. bits
     /*  0 */    3.051757812500000e-05,

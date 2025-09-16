@@ -20,6 +20,7 @@ void matrixSum(matrix32f_t *in0, matrix32f_t *in1, matrix32f_t *out0);
 void matrixDiff(matrix32f_t *in0, matrix32f_t *in1, matrix32f_t *out0);
 
 // Matrix multiplication; out0.h=in0.h, out10.w=in1.w
+// NOTE: Not implemented (was not required)
 void matrixMultiply(matrix32f_t *in0, matrix32f_t *in1, matrix32f_t *out0);
 
 // Hadamard product (Elementwise multiplication)

@@ -15,7 +15,7 @@ void hannWindow(uint32_t fftsize, matrix32f_t *mat) {
 
 #ifndef SERIAL
 // NEON Code * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-// Manipulates the input matrix so that it becomes longer
+// Manipulates the input vector so that it becomes longer
 void extendInput(matrix32f_t *in0, matrix32f_t *out0, uint8_t rank) {
 	size_t in_len  = in0->w * in0->h;
 
@@ -61,6 +61,7 @@ void fftToSpectogram(matrix32c_t *fftin, matrix32f_t *out0, lut32f_t *sqrt_lut) 
 	// Get square root
 	sqrtLUT(out0, sqrt_lut, NULL);
 }
+
 #else
 // Serial Code (Non NEON) * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 

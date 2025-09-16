@@ -164,7 +164,7 @@ void lstm_out(lstm_t *lstm, matrix32f_t *output){
 	// Un-hide `gp_scratchpad` extra memory
 	lstm->gp_scratchpad.w = lstm->input_size;
 
-	// Create input matrix from `h_in0 and h_in1` `into gp_scratchpad`
+	// Create input matrix from `h_in0` and `h_in1` into `gp_scratchpad`
 	matrixConcat(lstm->h_in0_ptr, lstm->h_in1_ptr, &lstm->gp_scratchpad);
 
 	// Do all calculations; Pass gp_scratchpad as the input
@@ -177,8 +177,8 @@ void lstm_out(lstm_t *lstm, matrix32f_t *output){
 
 void lstm_process(matrix32f_t *input, lstm_t *lstm) {
 	// Input * W is stored in `X_scratchpad`, depending on the gate.
-	// Note that in some cases `gp_scratchpad` == `input` (arg); all Input multiplications
-	// should be completed before overwriting `gp_scratchpad`
+	// Note that in some cases `gp_scratchpad` == `input` (arg); a
+	// All Input multiplications should be completed before overwriting `gp_scratchpad`
 
 	// Do input multiplications
 	multVecByMat(input, &lstm->f_w, 	&lstm->f_scratchpad);

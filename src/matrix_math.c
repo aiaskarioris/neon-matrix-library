@@ -9,7 +9,6 @@
 
 #include <stdio.h>
 
-// extern __inline
 
 // Adds two matrices together
 void matrixSum(matrix32f_t *in0, matrix32f_t *in1, matrix32f_t *out0) {
@@ -94,11 +93,12 @@ void multVecByMat(matrix32f_t *vec0, matrix32f_t *mat1, matrix32f_t *out0) {
             mat_idx += 4;
         };
 
-        // Perhaps....loading and storing back `out0` in each loop is suboptimal and it is better
+        // NOTE
+        // Perhaps loading and storing back `out0` in each loop is suboptimal and it is better
         // to calculate each output vector element whole before moving to the next one. With either approach,
         // mul-and-acc is leveraged. In the alternative approach, rows are accessed first and the elements of
         // the input vector are all loaded multiple time. As a result, the question of which method is faster depends
-        // (probably) on which operation is faster: vld1q_dup or vst1q_f32 (probably the former?)
+        // (probably) on which operation is faster: vld1q_dup or vst1q_f32
 
         // There may be a leftover part in this row
         for(pos_in_row; pos_in_row < mat1->w; pos_in_row++) {
@@ -138,19 +138,20 @@ void multMatByVec(matrix32f_t *mat0, matrix32f_t *vec1, matrix32f_t *out0) {
             size_t pos_in_mat = pos_in_vec + row_idx*mat0->w;
             vmat = vld1q_f32(&(mat0->d[pos_in_mat]));
 
-            vtemp = vmulq_f32(vvec, vmat);         // multiply vector elements with matrix elements
-            out0->d[row_idx] += vaddvq_f32(vtemp);   // "across-vector" addition of products and addition to output's vector element
+            vtemp = vmulq_f32(vvec, vmat);          // multiply vector elements with matrix elements
+            out0->d[row_idx] += vaddvq_f32(vtemp);  // "across-vector" addition of products and addition to output's vector element
         }
     }
 
     /* For the left-over vector part
     for(pos_in_vec; pos_in_vec < mat0->w; pos_in_vec++) {
-
+        // TODO
     }
     */
 }
 
 // Matrix multiplication; out0.h=in0.h, out10.w=in1.w
+// Not implemented as it was not required.
 void matrixMultiply(matrix32f_t *in0, matrix32f_t *in1, matrix32f_t *out0) {
     return;
 }
@@ -273,27 +274,6 @@ void squaredMagnitude(matrix32c_t *in0, matrix32f_t *out0) {
     }
 }
 
-// Unused function; Should be replaced by `squaredMagnitude`
-void elementwisePow2_complex(matrix32c_t *in0) {
-#ifdef DEBUG
-    if(in0->d == NULL) { printf("error in elementwisePow2_complex: in0->d==NULL\n"); return; }
-#endif
-    // sizeof(float complex) is 8 while sizeof(float) is 4; we'll handle in0->d as a float matrix
-    float32_t *indf = (float32_t*)in0->d;
-
-    size_t len = in0->w * in0->h * 2;
-    float32x4_t vin0, vout;
-    size_t i;
-    for(i = 0; i+4 < len; i+=4) {
-        vin0 = vld1q_f32(&(indf[i]));
-        vout = vmulq_f32(vin0, vin0);
-        vst1q_f32(&(indf[i]), vout);
-    }
-
-    // Handle leftovers
-    for(i; i < len; i++) { indf[i] *= indf[i]; }
-}
-
 void hadamardProduct_complex(matrix32c_t *in0, matrix32c_t *in1, matrix32c_t *out0) {
     size_t len = in0->w * in0->h * 2;
 #ifdef DEBUG
@@ -342,12 +322,12 @@ void hadamardProduct_complex(matrix32c_t *in0, matrix32c_t *in1, matrix32c_t *ou
         vimag[1] = vmulq_f32(vin0[1], vflip[1]);
 
         // Pairwise subtraction (real part)
-        vreal[0] = vreinterpretq_f32_u32(                       // There is no pairwise subtraction instruction so we
-            vorrq_u32(vminus1, vreinterpretq_u32_f32(vreal[0]))  // set the sign bits of vreal[1] to make them negative
-        ); // TODO: Maybe vmulq_f32() is faster. . .
+        vreal[0] = vreinterpretq_f32_u32(                           // There is no pairwise subtraction instruction so the
+            vorrq_u32(vminus1, vreinterpretq_u32_f32(vreal[0]))     // sign bits of vreal[1] are set to make them negative
+        );
         vreal[1] = vreinterpretq_f32_u32(
             vorrq_u32(vminus1, vreinterpretq_u32_f32(vreal[1]))
-        ); // TODO: Maybe vmulq_f32() is faster. . .
+        );
         vreal[0] = vpaddq_f32(vreal[0], vreal[1]);
 
         // Pairwise addition (imag. part)
@@ -365,7 +345,8 @@ void hadamardProduct_complex(matrix32c_t *in0, matrix32c_t *in1, matrix32c_t *ou
         // _lane_ instructions need their lane argument to be const (probably to evaluate its legitimacy at compile time)
     }
 
-    // Handle leftovers (2049 = 256*8 + 1 :[ )
+    // Handle leftovers
+
     // Helper register
     vminus1 = vld1q_u32(vminus1_const); // load {0x00, 0x80, 0x00, 0x00}
     // For every pair of complex inputs 4 scalar multiplications must be made
@@ -393,7 +374,7 @@ void hadamardProduct_complex(matrix32c_t *in0, matrix32c_t *in1, matrix32c_t *ou
         // Mult. fm1.1 with -1 to make the subtraction
         fm1 = vreinterpretq_f32_u32(
         vorrq_u32(vminus1, vreinterpretq_u32_f32(fm1))
-        ); // TODO: Maybe just vmulq_f32() is faster. . .
+        ); // NOTE: Maybe vmulq_f32() is faster. . .
 
         // Do pairwise additions (and subtraction)
         // We'll  ignore the other two results
@@ -403,24 +384,6 @@ void hadamardProduct_complex(matrix32c_t *in0, matrix32c_t *in1, matrix32c_t *ou
         vst1q_lane_f32(&(outdf[i]), fm1, 0);
         vst1q_lane_f32(&(outdf[i+1]), fm1, 1);
     }
-
-    /* TODO: This part can probably be done with NEON, but is it worth it?
-    float32x2_t pin0, pin1;
-    float32x2_t pflip;
-    float32x2_t preal, pimag;
-    float32x2_t pzero = vdup_n_f32(fzero);
-    for(i; i < len; i+=2) {
-        pin0  = vld1_f32(&(indf0[i]));
-        pin1  = vld1_f32(&(indf1[i]));
-        pflip = vrev64_f32(pin1);
-
-        preal = vmul_f32(pin0, pin1);
-        pimag = vmul_f32(pin0, pflip);
-
-        // real = preal.0 - preal.1
-        // imag = pimag.0 + pimag.1
-    }
-    */
 }
 
 // Real Matrix x Complex Matrix
@@ -469,8 +432,8 @@ void hadamardProduct_cbr(matrix32c_t *cin0, matrix32f_t *rin1, matrix32c_t *out0
         r += 2;
     }
 
-    // Handle leftovers (2049 = 256*8 + 1 :[ )
-    // For every complex number, 2 multiplications must be done; We can use NEON for this
+    // Handle leftovers
+    // For every complex number, 2 multiplications must be performed; Neon can be used for this
     float32x2_t vcin_2, vrin_2;
     for(i; i < clen; i+=2){
         vcin_2 = vld1_f32(indfc+i);
@@ -480,6 +443,27 @@ void hadamardProduct_cbr(matrix32c_t *cin0, matrix32f_t *rin1, matrix32c_t *out0
 
         r++;
     }
+}
+
+// Unused function; Should be replaced by `squaredMagnitude`
+void elementwisePow2_complex(matrix32c_t *in0) {
+    #ifdef DEBUG
+    if(in0->d == NULL) { printf("error in elementwisePow2_complex: in0->d==NULL\n"); return; }
+    #endif
+    // sizeof(float complex) is 8 while sizeof(float) is 4; we'll handle in0->d as a float matrix
+    float32_t *indf = (float32_t*)in0->d;
+
+    size_t len = in0->w * in0->h * 2;
+    float32x4_t vin0, vout;
+    size_t i;
+    for(i = 0; i+4 < len; i+=4) {
+        vin0 = vld1q_f32(&(indf[i]));
+        vout = vmulq_f32(vin0, vin0);
+        vst1q_f32(&(indf[i]), vout);
+    }
+
+    // Handle leftovers
+    for(i; i < len; i++) { indf[i] *= indf[i]; }
 }
 #endif
 

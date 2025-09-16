@@ -26,8 +26,8 @@ void deleteLUT32f(lut32f_t *lut);
 void clampingLUT(matrix32f_t *input0, lut32f_t *lut, matrix32f_t *output0);
 
 
-// LUT function fitted to for square root.
-// Expects non-negative input lesser than 200e3.
+// LUT function for square root.
+// Expects non-negative input, <200e3.
 void sqrtLUT(matrix32f_t *input0, lut32f_t *lut, matrix32f_t *output0);
 
 // Calculates the angle of a complex number using an atan lut

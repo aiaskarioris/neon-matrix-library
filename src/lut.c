@@ -89,9 +89,7 @@ void clampingLUT(matrix32f_t *input0, lut32f_t *lut, matrix32f_t *output0) {
             return;
         }
     if(lut->data == NULL) { printf("Error in clampingLUT: The LUT is not initiated.\n"); return; }
-    // Not sure why I had this check here
-    //if(lut->length % 2 != 0) { printf("Error in clampingLUT: The input LUT's length is an even number.\n"); return; }
-    }
+
 #endif
     // Note a matrix' dimensions have no effect when applying an LUT.
     size_t length = input0->h * input0->w;
@@ -103,7 +101,6 @@ void clampingLUT(matrix32f_t *input0, lut32f_t *lut, matrix32f_t *output0) {
     // Bias for mapping negative inputs to positive values
     float32_t bias = lut->bias; // (= half of the LUT's length, without counting the output for 0)
 
-    //printf("LUT Length: %d   Mult. Factor: %f\n", lut->length, lut->mult_factor);
     // Lovely registers
     float32x4_t vfin;
     uint32x4_t vuint;
@@ -165,13 +162,13 @@ void clampingLUT(matrix32f_t *input0, lut32f_t *lut, matrix32f_t *output0) {
 void sqrtLUT(matrix32f_t *input0, lut32f_t *lut, matrix32f_t *output0) {
 #ifdef DEBUG
     if(input0->d == NULL) { printf("Error in sqrtLUT: input0 is not initialized.\n"); return; }
-    if(output0 != NULL) { // In-place LUT passing is possible but the following test has no meaning in that case
+    if(output0 != NULL) { // In-place LUT passing is possible but the following tests have no meaning in that case
         if(output0->d == NULL) { printf("Error in sqrtLUT: output0 is not initialized.\n"); return; }
         if((input0->w != output0->w) || (input0->h != output0->h)) {
             printf("Error in sqrtLUT: (input0.w != output0.w) || (input0.h != output0.h)\n");
             return;
         }
-    if(lut->data == NULL) { printf("Error in sqrtLUT: The LUT is not initiliazed.\n"); return; }
+        if(lut->data == NULL) { printf("Error in sqrtLUT: The LUT is not initiliazed.\n"); return; }
     }
 #endif
     // NOTE: A matrix' dimensions have no effect when applying an LUT.
@@ -179,18 +176,16 @@ void sqrtLUT(matrix32f_t *input0, lut32f_t *lut, matrix32f_t *output0) {
     // Select the active output
     float32_t *output = (output0 == NULL) ? input0->d : output0->d;
 
-    // Multiplication factor for normalizing input to lut lengt
+    // Multiplication factor for normalizing input to lut length
     const float32_t mult_factor = lut->mult_factor;
-    //printf("LUT Length: %d   Mult. Factor: %f\n", lut->length, lut->mult_factor);
-    // Lovely registers
-    float32x4_t vfin;
-    uint32x4_t vuint;
 
     // Use SIMD
+    float32x4_t vfin;
+    uint32x4_t vuint;
     size_t i;
     for(i = 0; i+4 <= length; i+= 4) {
         vfin = vld1q_f32(&input0->d[i]);
-        // Normalize and represent as multiple of minimum in one fell swoop
+        // Normalize and represent as multiple of minimum with one instruction
         vfin = vmulq_n_f32(vfin, mult_factor);
 
 #ifdef DEBUG
@@ -254,8 +249,8 @@ void angleLUT_c(matrix32c_t *input0, lut32f_t *lut, matrix32f_t *output0) {
     size_t i;
     size_t o = 0;
     for(i = 0; i+8 <= len; i+=8) {
-        // There is no pairwise division NEON instruction so we'll load
-        // each float to their respective vregisters manually
+        // There is no pairwise division Neon instruction so
+        // each float is loaded to its respective vregisters manually
         for(uint8_t t = 0; t < 4; t++){ fbuffer[t] = indf[i+ t*2]; }
         vreal = vld1q_f32(fbuffer);
 
@@ -265,7 +260,7 @@ void angleLUT_c(matrix32c_t *input0, lut32f_t *lut, matrix32f_t *output0) {
         vdiv = vdivq_f32(vimag, vreal);
 
         // Continue with the usual LUT operation...
-        // Normalize and represent as multiples of minimum (in one fell swoop)
+        // Normalize and represent as multiples of minimum
         vdiv = vmlaq_f32(vbias, vfactor, vdiv);
 
         // Trim negative numbers to zero
@@ -318,7 +313,6 @@ void expiLUT(matrix32f_t *input0, lut32f_t *sinlut, lut32f_t *coslut, matrix32c_
     float32_t *indf  = (float32_t*)input0->d;
     float32_t *outdf = (float32_t*)output0->d;
 
-    // Lovely registers
     float32x4_t vfin;
     uint32x4_t  vuint;
 
@@ -338,14 +332,14 @@ void expiLUT(matrix32f_t *input0, lut32f_t *sinlut, lut32f_t *coslut, matrix32c_
     for(i = 0; i+4 <= len; i+= 4) {
         vfin = vld1q_f32(indf+i);
 
-        // Normalize and represent as multiple of minimum in one fell swoop
+        // Normalize and represent as multiple of minimum
         vfin = vmlaq_f32(vbias, vfactor, vfin);
 
         // Convert input vector to integer vector
         vuint = vcvtnq_u32_f32(vfin);
 
         // This function's input is always the output of `angleLUT_c`, which is always within the range [-pi/2, +pi/2]
-        // There is no need to clamp or check for certain values
+        // There is no need to clamp or check for problematic input values
 
         // Find sine(n) for imaginery part
         outdf[o+1] = sinlut->data[ vgetq_lane_u32(vuint, 0) ];
@@ -392,8 +386,6 @@ void clampingLUT(matrix32f_t *input0, lut32f_t *lut, matrix32f_t *output0) {
             return;
         }
         if(lut->data == NULL) { printf("Error in clampingLUT: The LUT is not initiated.\n"); return; }
-
-        //if(lut->length % 2 != 0) { printf("Error in clampingLUT: The input LUT's length is an even number.\n"); return; }
     }
 #endif
     // Note a matrix' dimensions have no effect when applying an LUT.
@@ -442,7 +434,7 @@ void sqrtLUT(matrix32f_t *input0, lut32f_t *lut, matrix32f_t *output0) {
     // Select the active output
     float32_t *output = (output0 == NULL) ? input0->d : output0->d;
 
-    // Multiplication factor for normalizing input to lut lengt
+    // Multiplication factor for normalizing input to lut length
     const float32_t mult_factor = lut->mult_factor;
 
     // Get leftover numbers
